@@ -57,13 +57,11 @@ function activate(context) {
                     });
                     for await (const part of streamResponse) {
                         streamedResponse += part.message.content;
-                        // Send intermediate results for streaming
                         panel.webview.postMessage({
                             command: 'chatStream',
                             text: processResponse(streamedResponse, true),
                         });
                     }
-                    // Send the final response
                     panel.webview.postMessage({
                         command: 'chatComplete',
                         text: processResponse(streamedResponse, false),
@@ -80,9 +78,6 @@ function activate(context) {
     });
     context.subscriptions.push(disposable);
 }
-/**
- * Process AI responses and detect code blocks.
- */
 function processResponse(response, isStreaming) {
     response = response.replace(/<think>/g, '<span class="think-tag">&lt;think&gt;</span>');
     response = response.replace(/<\/think>/g, '<span class="think-tag">&lt;/think&gt;</span>');
@@ -100,9 +95,6 @@ function processResponse(response, isStreaming) {
     });
     return isStreaming ? response + '<span class="typing">...</span>' : response;
 }
-/**
- * Escape HTML entities for code rendering.
- */
 function escapeHtml(text) {
     return text
         .replace(/&/g, '&amp;')
@@ -111,9 +103,6 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-/**
- * Webview content with real-time streaming.
- */
 function getWebviewContent() {
     return /*html*/ `
     <!DOCTYPE html>
@@ -126,23 +115,41 @@ function getWebviewContent() {
             .user-message, .ai-message { margin: 0.5rem 0; padding: 0.5rem; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
             .user-message { align-self: flex-end; background-color: #007bff; color: white; }
             .ai-message { align-self: flex-start; background-color: #f1f1f1; color: #333; }
-            .think-tag { font-style: italic; color: #888; } /* Style for <think> tags */
-            .typing { color: #888; font-style: italic; } /* Typing indicator */
+            .think-tag { font-style: italic; color: #888; }
+            .typing { color: #888; font-style: italic; }
             .code-block { border: 1px solid #333; border-radius: 8px; overflow: hidden; margin-top: 10px; }
             .code-header { display: flex; justify-content: space-between; align-items: center; background-color: #333; color: #fff; padding: 5px 10px; font-size: 0.9rem; }
             .copy-btn { background-color: #007bff; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
             .copy-btn:hover { background-color: #0056b3; }
-            pre { background-color: #1e1e1e; color: #d4d4d4; padding: 1rem; margin: 0; overflow-x: auto; font-family: "Courier New", Courier, monospace; }
+            pre { background-color: #1e1e1e; color: #e8e8e8; padding: 1rem; margin: 0; overflow-x: auto; word-wrap: break-word; overflow-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+            textarea { 
+                width: 100%; 
+                height: 120px; 
+                max-height: 200px; 
+                padding: 10px; 
+                border: 1px solid #555; 
+                border-radius: 4px; 
+                background-color: #333; 
+                color: white; 
+                font-size: 14px; 
+                resize: vertical;
+                box-sizing: border-box; 
+            }
         </style>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
     </head>
     <body>
         <h2>Deep VS Code Extension</h2>
         <div class="chat-container" id="chatContainer"></div>
         <div class="input-container">
-            <textarea id="prompt" rows="2" placeholder="Ask me anything about your project!"></textarea>
+            <textarea id="prompt" rows="4" placeholder="Ask me anything about your project!"></textarea>
             <button id="askBtn">Ask</button>
         </div>
-
         <script>
             const vscode = acquireVsCodeApi();
             const chatContainer = document.getElementById('chatContainer');
@@ -169,12 +176,12 @@ function getWebviewContent() {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = className;
                 if (isHtml) {
-                    messageDiv.innerHTML = text; // Render as HTML for code blocks
+                    messageDiv.innerHTML = text;
                 } else {
-                    messageDiv.textContent = text; // Render as plain text
+                    messageDiv.textContent = text;
                 }
                 chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
 
             function updateLastMessage(text, isFinal = false) {
@@ -188,6 +195,7 @@ function getWebviewContent() {
                 } else {
                     addMessage(text, 'ai-message', true);
                 }
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
 
             function copyCode(button) {
