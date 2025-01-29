@@ -3,7 +3,7 @@
   "displayName": "VS DeepSeek Extension",
   "description": "A VS Code extension for integrating DeepSeek-R1 via Ollama.",
   "version": "0.0.1",
-  "publisher": "your-publisher-name",
+  "publisher": "theryeguy92",
   "engines": {
     "vscode": "^1.96.0"
   },
