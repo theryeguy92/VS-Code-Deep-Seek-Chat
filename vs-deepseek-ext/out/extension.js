@@ -83,11 +83,28 @@ function activate(context) {
     });
     context.subscriptions.push(disposable);
 }
+/**
+ * Post-processing of the AI's raw text:
+ * 1) Convert <think> tags to a "Thinking..." placeholder with a toggle for full chain-of-thought.
+ * 2) Keep the code-block export logic intact (regex for triple backticks).
+ * 3) If the response is final (not streaming), wrap it in a minimal markdown-style container.
+ */
 function processResponse(response, isStreaming) {
-    // Replace <think> tags with a stylized placeholder
-    response = response.replace(/<think>/g, '<span class="think-tag">&lt;think&gt;</span>');
-    response = response.replace(/<\/think>/g, '<span class="think-tag">&lt;/think&gt;</span>');
-    // Handle code blocks
+    // 1) Replace <think> tags with a collapsible toggle
+    response = response.replace(/<think>([\s\S]*?)<\/think>/g, (match, capturedContent) => {
+        return `
+        <div class="thinking-wrapper">
+            <div class="thinking-summary">
+                <em>Thinking...</em>
+                <button class="toggle-btn" onclick="toggleThinking(this)">Show Full Thought</button>
+            </div>
+            <div class="thinking-full" style="display:none;">
+                ${capturedContent.trim()}
+            </div>
+        </div>
+        `;
+    });
+    // 2) KEEP your original code-block logic — do not remove or break
     response = response.replace(/```(\w+)?([\s\S]*?)```/g, (match, language, code) => {
         const lang = language || 'plaintext';
         return `
@@ -100,7 +117,16 @@ function processResponse(response, isStreaming) {
             </div>
         `;
     });
-    // If streaming, add a "..." or a typing indicator
+    // 3) For the final response, wrap the entire text in some markdown-like structure.
+    if (!isStreaming) {
+        response = `
+<div class="md-output">
+    <h3>Answer</h3>
+    ${response}
+</div>
+        `;
+    }
+    // If still streaming, add the "typing..." indicator
     return isStreaming ? response + '<span class="typing">...</span>' : response;
 }
 function escapeHtml(text) {
@@ -130,7 +156,7 @@ function getWebviewContent() {
                 flex-direction: column;
             }
 
-            /* Header/Title styling (if you want to keep it) */
+            /* Header/Title styling */
             .header {
                 background-color: #202123;
                 color: #fff;
@@ -159,15 +185,11 @@ function getWebviewContent() {
                 padding: 0.8rem;
                 word-wrap: break-word;
             }
-
-            /* User messages: align right, different background */
             .user-message {
                 margin-left: auto;
                 background-color: #007bff;
                 color: #ffffff;
             }
-
-            /* AI messages: align left, lighter background */
             .ai-message {
                 margin-right: auto;
                 background-color: #eaeaea;
@@ -182,7 +204,6 @@ function getWebviewContent() {
                 padding: 0.5rem;
                 border-top: 1px solid #ccc;
             }
-
             .input-container textarea {
                 flex: 1;
                 resize: none;
@@ -193,7 +214,6 @@ function getWebviewContent() {
                 font-size: 14px;
                 font-family: inherit;
             }
-
             .input-container button {
                 background-color: #007bff;
                 color: #fff;
@@ -203,21 +223,26 @@ function getWebviewContent() {
                 cursor: pointer;
                 font-size: 14px;
             }
-
             .input-container button:hover {
                 background-color: #005bbd;
-            }
-
-            /* Subtle italic style for thinking tags */
-            .think-tag {
-                font-style: italic;
-                color: #888;
             }
 
             /* "Typing" indicator */
             .typing {
                 color: #888;
                 font-style: italic;
+            }
+
+            /* Minimal container for final markdown-like output */
+            .md-output {
+                border: 1px solid #ddd;
+                background: #fff;
+                padding: 1rem;
+                margin-top: 0.5rem;
+                border-radius: 6px;
+            }
+            .md-output h3 {
+                margin-top: 0;
             }
 
             /* Code block styling */
@@ -227,7 +252,6 @@ function getWebviewContent() {
                 margin-top: 10px;
                 overflow: hidden;
             }
-
             .code-header {
                 display: flex;
                 justify-content: space-between;
@@ -237,7 +261,6 @@ function getWebviewContent() {
                 padding: 5px 10px;
                 font-size: 0.9rem;
             }
-
             .copy-btn {
                 background-color: #007bff;
                 color: #fff;
@@ -246,11 +269,9 @@ function getWebviewContent() {
                 padding: 3px 8px;
                 cursor: pointer;
             }
-
             .copy-btn:hover {
                 background-color: #0056b3;
             }
-
             pre {
                 margin: 0;
                 padding: 1rem;
@@ -259,7 +280,39 @@ function getWebviewContent() {
                 overflow-x: auto;
                 font-family: "Courier New", Courier, monospace;
             }
+
+            /* Collapsible "thinking" content */
+            .thinking-wrapper {
+                border-left: 2px solid #ccc;
+                margin: 0.5rem 0;
+                padding-left: 0.5rem;
+            }
+            .thinking-summary {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-style: italic;
+                color: #999;
+            }
+            .toggle-btn {
+                background-color: #bbb;
+                color: #333;
+                border: none;
+                border-radius: 4px;
+                padding: 3px 8px;
+                cursor: pointer;
+                font-size: 0.8rem;
+            }
+            .thinking-full {
+                margin-top: 0.5rem;
+                padding: 0.5rem;
+                border: 1px dashed #ccc;
+                font-size: 0.9rem;
+                background-color: #f9f9f9;
+                white-space: pre-wrap;
+            }
         </style>
+
         <!-- Prism.js for syntax highlighting -->
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
@@ -303,16 +356,16 @@ function getWebviewContent() {
             window.addEventListener('message', event => {
                 const { command, text } = event.data;
 
-                // While tokens are streaming in
                 if (command === 'chatStream') {
+                    // While tokens are streaming
                     updateLastMessage(text);
-                }
-                // On final token
+                } 
                 else if (command === 'chatComplete') {
+                    // On final token
                     updateLastMessage(text, true);
                 }
-                // If an error or something else
                 else if (command === 'chatResponse') {
+                    // If an error or something else
                     addMessage(text, 'ai-message', true);
                 }
             });
@@ -361,6 +414,18 @@ function getWebviewContent() {
                     button.textContent = 'Copied!';
                     setTimeout(() => (button.textContent = 'Copy'), 2000);
                 });
+            }
+
+            // Toggle display of chain-of-thought
+            function toggleThinking(btn) {
+                const fullThought = btn.parentElement.nextElementSibling;
+                if (fullThought.style.display === 'none') {
+                    fullThought.style.display = 'block';
+                    btn.textContent = 'Hide Full Thought';
+                } else {
+                    fullThought.style.display = 'none';
+                    btn.textContent = 'Show Full Thought';
+                }
             }
         </script>
     </body>
