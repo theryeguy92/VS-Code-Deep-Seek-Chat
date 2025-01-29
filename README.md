@@ -14,11 +14,20 @@ Before installing this extension, ensure you have the following installed:
 - **VS Code** (Latest version)
 - **Ollama** (Required for running DeepSeek models)
 
+Also, you will need to have the model downloaded locally prior
+
 ### **2. Install Ollama**
 This extension requires **Ollama** for AI-powered chat. Install it via:
 
 ```sh
 npm install ollama
+```
+
+### **3. Install Ollama**
+Pull the Required Model
+
+```sh
+ollama pull deepseek-r1:latest
 ```
 ## **How to Install the Extension**
 
@@ -53,7 +62,7 @@ code .
 ## **How to Use**
 
 ### **1. Open VS Code**
-### **2. Open the COmmand Palette (Crlt+Shift+P)**
+### **2. Open the Command Palette (Crlt+Shift+P)**
 ### **3. Search for "Deep Seek Chat" and run the command**
 ### **4. A new panel will open where you can interact with DeepSeek-R1**
 ### **5. Type your prompt and click "Ask" to get a Response**

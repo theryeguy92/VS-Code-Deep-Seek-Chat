@@ -1,21 +1,24 @@
 {
   "name": "vs-deepseek-ext",
-  "displayName": "vs-deepseek-ext",
-  "description": "",
+  "displayName": "VS DeepSeek Extension",
+  "description": "A VS Code extension for integrating DeepSeek-R1 via Ollama.",
   "version": "0.0.1",
+  "publisher": "your-publisher-name",
   "engines": {
     "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:vs-deepseek-ext.helloWorld"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "vs-deepseek-ext.helloWorld",
-        "title": "Hello World"
+        "title": "Deep Seek Chat"
       }
     ]
   },
@@ -26,6 +29,9 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
+  },
+  "dependencies": {
+    "ollama": "^0.5.12"
   },
   "devDependencies": {
     "@types/vscode": "^1.96.0",
