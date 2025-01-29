@@ -121,7 +121,7 @@ function getWebviewContent() {
             .code-header { display: flex; justify-content: space-between; align-items: center; background-color: #333; color: #fff; padding: 5px 10px; font-size: 0.9rem; }
             .copy-btn { background-color: #007bff; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
             .copy-btn:hover { background-color: #0056b3; }
-            pre { background-color: #1e1e1e; color: #e8e8e8; padding: 1rem; margin: 0; overflow-x: auto; word-wrap: break-word; overflow-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+            pre { background-color: #1e1e1e; color: #e8e8e8; padding: 1rem; margin: 0; overflow-x: auto; font-family: "Courier New", Courier, monospace; }
             textarea { 
                 width: 100%; 
                 height: 120px; 
@@ -181,6 +181,7 @@ function getWebviewContent() {
                     messageDiv.textContent = text;
                 }
                 chatContainer.appendChild(messageDiv);
+                Prism.highlightAll();
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
 
@@ -195,6 +196,7 @@ function getWebviewContent() {
                 } else {
                     addMessage(text, 'ai-message', true);
                 }
+                Prism.highlightAll();
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
 
